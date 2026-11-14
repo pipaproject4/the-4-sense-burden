@@ -2279,8 +2279,9 @@ void drawMeasure() {
             .c_str());
     float a = areaDigunakanCm2();
     oled.drawStr(
-        70, 50,
-        (String("A*:") + (isfinite(a) ? String(a, 1) : String("--"))).c_str());
+        64, 50,
+        (String("A*:") + (isfinite(a) ? String(a, 1) : String("--")) + "cm2")
+            .c_str());
   }
   if (mode == 1 && scaleGas != 0.0f && balonJumlahTitik == 1) {
     if (diameterBalonCm >= 1.0f && diameterBalonCm <= 45.0f)
