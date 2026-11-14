@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The 4 Sense Burden — Dashboard Tekanan IoT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <!-- MQTT.js & Chart.js via CDN -->
+  <script src="https://unpkg.com/mqtt@5.10.3/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar / Topbar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">4S</div>
+        <div>
+          <div class="brand-title">4 Sense Burden</div>
+          <div class="brand-sub">Web Monitoring Tekanan</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu" aria-label="Navigasi Utama">
+        <button class="nav-btn active" data-tab="dashboard">
+          <span class="nav-dot"></span>
+          Dashboard Live
+        </button>
+        <button class="nav-btn" data-tab="praktikum">
+          <span class="nav-dot"></span>
+          Praktikum &amp; Riwayat
+        </button>
+        <button class="nav-btn" data-tab="pengaturan">
+          <span class="nav-dot"></span>
+          Pengaturan
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-card">
+          <div class="status-row">
+            <span class="status-label">Koneksi MQTT</span>
+            <span id="badge-mqtt" class="badge badge-offline">Terputus</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Status ESP32</span>
+            <span id="badge-esp" class="badge badge-muted">Offline</span>
+          </div>
+          <div class="status-meta" id="meta-broker">broker.hivemq.com • alat01</div>
+          <div class="status-actions">
+            <button id="btn-connect" class="btn btn-primary btn-sm">Hubungkan</button>
+            <button id="btn-simulasi" class="btn btn-outline btn-sm">Simulasi: OFF</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">Dashboard Monitoring</h1>
+          <p id="page-subtitle" class="subtitle">Pantau sensor tekanan ESP32 secara real-time melalui MQTT WebSocket</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="last-update" class="last-update">Belum ada data</span>
+          <button id="btn-theme" class="btn btn-outline btn-sm" title="Ganti Tema">Mode Gelap</button>
+        </div>
+      </header>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-panel active">
+        <!-- Mode Selector -->
+        <div class="toolbar">
+          <div class="segmented-control" role="tablist" aria-label="Pilih Mode Zat">
+            <button class="seg-btn" data-mode="2">Zat Padat</button>
+            <button class="seg-btn" data-mode="0">Zat Cair</button>
+            <button class="seg-btn active" data-mode="1">Zat Gas</button>
+          </div>
+
+          <div class="range-control">
+            <span class="range-label">Rentang Grafik:</span>
+            <div class="segmented-control compact">
+              <button class="range-btn active" data-range="1">1m</button>
+              <button class="range-btn" data-range="5">5m</button>
+              <button class="range-btn" data-range="10">10m</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div id="metric-grid" class="metric-grid"></div>
+
+        <!-- Chart Card -->
+        <div class="card chart-card">
+          <div class="card-header">
+            <div>
+              <h2 id="chart-title">Grafik Tekanan Real-Time</h2>
+              <p id="chart-subtitle" class="card-sub">Menampilkan data terbaru dari topik MQTT</p>
+            </div>
+            <button id="btn-clear-chart" class="btn btn-outline btn-sm">Bersihkan Grafik</button>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="pressure-chart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: PRAKTIKUM & RIWAYAT -->
+      <section id="tab-praktikum" class="tab-panel">
+        <div class="card record-card">
+          <div class="card-header">
+            <div>
+              <h2>Perekaman Sesi Praktikum</h2>
+              <p class="card-sub">Rekam sampel data sensor dari mode aktif untuk dianalisis dan diekspor ke CSV.</p>
+            </div>
+            <div class="record-controls">
+              <input id="input-judul-sesi" type="text" class="input" placeholder="Judul sesi (cth: Percobaan Hukum Boyle)" />
+              <button id="btn-toggle-rekam" class="btn btn-primary">Mulai Rekam</button>
+            </div>
+          </div>
+          <div id="record-status" class="record-status hidden">
+            <span class="pulse-dot"></span>
+            <span>Merekam <strong id="rekam-mode-nama">Zat Gas</strong> — <strong id="rekam-jumlah">0</strong> sampel terkumpul</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Riwayat Sesi Tersimpan</h2>
+              <p class="card-sub">Disimpan secara lokal di browser Anda (localStorage).</p>
+            </div>
+            <button id="btn-hapus-semua-sesi" class="btn btn-danger btn-sm">Hapus Semua</button>
+          </div>
+          <div id="riwayat-list" class="riwayat-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PENGATURAN -->
+      <section id="tab-pengaturan" class="tab-panel">
+        <div class="settings-grid">
+          <form id="form-pengaturan" class="card">
+            <h2>Koneksi MQTT WebSocket</h2>
+            <p class="card-sub">Browser berkomunikasi dengan broker melalui WebSocket (WS/WSS), bukan port TCP 1883.</p>
+
+            <div class="form-group">
+              <label for="cfg-host">Host Broker</label>
+              <input id="cfg-host" type="text" class="input" value="broker.hivemq.com" required />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfg-protocol">Protokol</label>
+                <select id="cfg-protocol" class="input">
+                  <option value="wss">wss:// (Aman / HTTPS)</option>
+                  <option value="ws">ws:// (Lokal / HTTP)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="cfg-port">Port WebSocket</label>
+                <input id="cfg-port" type="number" class="input" value="8884" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfg-path">Path WebSocket</label>
+                <input id="cfg-path" type="text" class="input" value="/mqtt" />
+              </div>
+              <div class="form-group">
+                <label for="cfg-id">ID Alat (ESP32)</label>
+                <input id="cfg-id" type="text" class="input" value="alat01" required />
+              </div>
+            </div>
+
+            <hr class="divider" />
+
+            <h2>Satuan Tampilan</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfg-satuan-tekanan">Satuan Tekanan</label>
+                <select id="cfg-satuan-tekanan" class="input">
+                  <option value="kPa">kPa (Kilopascal)</option>
+                  <option value="Pa">Pa (Pascal)</option>
+                  <option value="bar">bar</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="cfg-satuan-suhu">Satuan Suhu</label>
+                <select id="cfg-satuan-suhu" class="input">
+                  <option value="°C">°C (Celsius)</option>
+                  <option value="K">K (Kelvin)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Simpan &amp; Terapkan</button>
+              <button type="button" id="btn-reset-pengaturan" class="btn btn-outline">Reset Default</button>
+            </div>
+          </form>
+
+          <div class="card info-card">
+            <h2>Informasi Topik MQTT</h2>
+            <p class="card-sub">Website ini menggunakan struktur topik yang sama dengan aplikasi mobile Flutter:</p>
+            <ul class="topic-list">
+              <li><span>Data Sensor:</span> <code id="info-topik-data">tekanan/alat01/data</code></li>
+              <li><span>Status Alat:</span> <code id="info-topik-status">tekanan/alat01/status</code></li>
+              <li><span>Perintah Mode:</span> <code id="info-topik-perintah">tekanan/alat01/perintah</code></li>
+            </ul>
+            <div class="note-box">
+              <strong>Catatan HiveMQ Publik:</strong><br />
+              Port WebSocket bawaan HiveMQ adalah <code>8884</code> (<code>wss://</code>) atau <code>8000</code> (<code>ws://</code>) dengan path <code>/mqtt</code>.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
