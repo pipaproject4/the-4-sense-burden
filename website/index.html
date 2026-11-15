@@ -61,7 +61,7 @@
         </button>
         <button class="nav-btn" data-tab="praktikum">
           <span class="nav-icon">📝</span>
-          Rekam &amp; Riwayat
+          Riwayat Praktikum
         </button>
         <button class="nav-btn" data-tab="pengaturan">
           <span class="nav-icon">⚙️</span>
@@ -141,7 +141,7 @@
             <h2 id="mode-banner-title">Praktikum Tekanan Zat Gas</h2>
             <p id="mode-banner-desc">Amati tekanan udara di dalam balon, suhu ruangan, dan perkiraan volume gas.</p>
           </div>
-          <div class="mode-banner-actions">
+          <div id="banner-capture-wrap" class="mode-banner-actions hidden">
             <button id="btn-ambil-data" class="btn btn-primary btn-capture">📸 Ambil Nilai Zat Gas</button>
           </div>
         </div>
@@ -149,16 +149,18 @@
         <!-- Metric Cards -->
         <div id="metric-grid" class="metric-grid"></div>
 
-        <!-- Tabel Pengambilan Data Per Zat -->
-        <div class="card capture-card">
+        <!-- Tabel Pengambilan Data Per Zat (Muncul saat Mulai Praktikum) -->
+        <div id="capture-card" class="card capture-card hidden">
           <div class="card-header">
             <div>
               <h2 id="capture-title">Tabel Data Pengamatan — Zat Gas</h2>
-              <p class="card-sub">Tekan tombol <strong>Ambil Nilai</strong> di atas untuk mencatat tekanan &amp; parameter saat ini.</p>
+              <p class="card-sub">Tekan tombol <strong>📸 Ambil Nilai</strong> di atas, isi judul sesi, lalu klik <strong>Simpan ke Riwayat</strong>.</p>
             </div>
             <div class="capture-actions">
+              <input id="input-judul-sesi" type="text" class="input input-judul-sesi" placeholder="Judul sesi (cth: Kelompok 1 - Zat Gas)" />
+              <button id="btn-simpan-sesi" class="btn btn-primary btn-sm">💾 Simpan ke Riwayat</button>
               <button id="btn-export-capture" class="btn btn-outline btn-sm">Unduh CSV</button>
-              <button id="btn-clear-capture" class="btn btn-danger btn-sm">Hapus Tabel</button>
+              <button id="btn-clear-capture" class="btn btn-danger btn-sm">Reset Tabel</button>
             </div>
           </div>
           <div id="capture-table-wrap" class="table-wrap"></div>
@@ -215,7 +217,7 @@
                 <li>Bandingkan tekanan saat posisi benda berdiri (luas kecil) vs tidur (luas besar)!</li>
               </ol>
             </div>
-            <button class="btn btn-padat btn-go-mode" data-go-mode="2">Buka Dashboard Zat Padat →</button>
+            <button class="btn btn-padat btn-go-mode" data-go-mode="2">Mulai Praktikum Zat Padat →</button>
           </article>
 
           <!-- Panduan Zat Cair -->
@@ -245,7 +247,7 @@
                 <li>Perhatikan: semakin dalam permukaan air, semakin besar tekanannya!</li>
               </ol>
             </div>
-            <button class="btn btn-cair btn-go-mode" data-go-mode="0">Buka Dashboard Zat Cair →</button>
+            <button class="btn btn-cair btn-go-mode" data-go-mode="0">Mulai Praktikum Zat Cair →</button>
           </article>
 
           <!-- Panduan Zat Gas -->
@@ -272,38 +274,21 @@
                 <li>Pilih mode <strong>Zat Gas</strong> pada alat atau website.</li>
                 <li>Pasang balon pada botol di zona balon udara sakura sebelah kiri.</li>
                 <li>Pompa atau tekan udara perlahan dan amati perubahan tekanan <strong>P</strong>, suhu <strong>T</strong>, dan volume balon <strong>V</strong>.</li>
-                <li>Rekam hasil percobaan di tab <strong>Rekam &amp; Riwayat</strong> untuk diunduh ke Excel/CSV!</li>
+                <li>Ambil data pengamatan lalu simpan ke <strong>Riwayat Praktikum</strong> untuk diunduh ke CSV!</li>
               </ol>
             </div>
-            <button class="btn btn-gas btn-go-mode" data-go-mode="1">Buka Dashboard Zat Gas →</button>
+            <button class="btn btn-gas btn-go-mode" data-go-mode="1">Mulai Praktikum Zat Gas →</button>
           </article>
         </div>
       </section>
 
-      <!-- TAB 3: REKAM & RIWAYAT -->
+      <!-- TAB 3: RIWAYAT PRAKTIKUM -->
       <section id="tab-praktikum" class="tab-panel">
-        <div class="card record-card">
-          <div class="card-header">
-            <div>
-              <h2>Perekaman Sesi Praktikum</h2>
-              <p class="card-sub">Rekam data sensor dari mode yang sedang aktif lalu unduh menjadi file CSV untuk laporan praktikum.</p>
-            </div>
-            <div class="record-controls">
-              <input id="input-judul-sesi" type="text" class="input" placeholder="Judul sesi (cth: Percobaan Kelompok 1)" />
-              <button id="btn-toggle-rekam" class="btn btn-primary">Mulai Rekam</button>
-            </div>
-          </div>
-          <div id="record-status" class="record-status hidden">
-            <span class="pulse-dot"></span>
-            <span>Merekam <strong id="rekam-mode-nama">Zat Gas</strong> — <strong id="rekam-jumlah">0</strong> sampel terkumpul</span>
-          </div>
-        </div>
-
         <div class="card">
           <div class="card-header">
             <div>
-              <h2>Riwayat Sesi Tersimpan</h2>
-              <p class="card-sub">Tersimpan otomatis di browser Anda (localStorage).</p>
+              <h2>Riwayat Sesi Praktikum Tersimpan</h2>
+              <p class="card-sub">Data dari <strong>Tabel Data Pengamatan</strong> yang disimpan akan muncul di sini dan dapat diunduh sebagai CSV.</p>
             </div>
             <button id="btn-hapus-semua-sesi" class="btn btn-danger btn-sm">Hapus Semua</button>
           </div>

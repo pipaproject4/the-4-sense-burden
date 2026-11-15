@@ -1019,8 +1019,15 @@ code {
 
 .capture-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.input-judul-sesi {
+  width: 240px;
+  padding: 6px 11px;
+  font-size: 0.84rem;
 }
 
 .table-wrap {

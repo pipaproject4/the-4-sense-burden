@@ -90,8 +90,7 @@
     riwayat: [],
     terakhirPerMode: { 0: null, 1: null, 2: null },
     terakhir: null,
-    merekam: false,
-    sampelRekam: [],
+    modePraktikumAktif: false,
     sesiTersimpan: loadSesi(),
     captures: loadCaptures(),
     flippedCards: new Set(),
@@ -698,7 +697,7 @@
   function renderRiwayatSesi() {
     const listEl = $('#riwayat-list');
     if (state.sesiTersimpan.length === 0) {
-      listEl.innerHTML = '<p class="card-sub">Belum ada sesi praktikum tersimpan. Mulai rekam dari panel di atas.</p>';
+      listEl.innerHTML = '<p class="card-sub">Belum ada sesi praktikum tersimpan. Buka <strong>Panduan Praktikum</strong> → klik <strong>Mulai Praktikum</strong> → ambil nilai lalu simpan ke riwayat.</p>';
       return;
     }
     listEl.innerHTML = state.sesiTersimpan
@@ -707,10 +706,10 @@
       <div class="sesi-item">
         <div>
           <div class="sesi-title">${escapeHtml(sesi.judul)}</div>
-          <div class="sesi-meta">${MODE_INFO[sesi.mode]?.nama || 'Mode'} • ${sesi.sampel.length} sampel • ${new Date(sesi.waktu).toLocaleString('id-ID')}</div>
+          <div class="sesi-meta">${MODE_INFO[sesi.mode]?.nama || 'Mode'} • ${sesi.sampel.length} data pengamatan • ${new Date(sesi.waktu).toLocaleString('id-ID')}</div>
         </div>
         <div class="sesi-actions">
-          <button class="btn btn-outline btn-sm" data-export="${sesi.id}">Export CSV</button>
+          <button class="btn btn-outline btn-sm" data-export="${sesi.id}">Unduh CSV</button>
           <button class="btn btn-danger btn-sm" data-hapus="${sesi.id}">Hapus</button>
         </div>
       </div>`
@@ -740,14 +739,6 @@
     state.riwayat.push(item);
     if (state.riwayat.length > MAX_RIWAYAT) {
       state.riwayat.shift();
-    }
-
-    if (state.merekam && mode === state.mode) {
-      state.sampelRekam.push({
-        waktu: waktu.toISOString(),
-        data: payloadObj,
-      });
-      $('#rekam-jumlah').textContent = state.sampelRekam.length;
     }
 
     $('#last-update').textContent = `Update: ${waktu.toLocaleTimeString('id-ID', { hour12: false })}`;
@@ -858,10 +849,47 @@
     ov.classList.toggle('open', isOpen);
   }
 
-  function bukaTab(tabName) {
+  function renderPraktikumVisibility() {
+    const show = Boolean(state.modePraktikumAktif);
+    $('#banner-capture-wrap').classList.toggle('hidden', !show);
+    $('#capture-card').classList.toggle('hidden', !show);
+  }
+
+  function bukaTab(tabName, mulaiPraktikum = false) {
+    if (tabName === 'dashboard') {
+      state.modePraktikumAktif = Boolean(mulaiPraktikum);
+      renderPraktikumVisibility();
+    }
     $$('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabName));
     $$('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === `tab-${tabName}`));
     toggleSidebar(false);
+  }
+
+  function simpanTabelKeRiwayat() {
+    const m = state.mode;
+    const list = state.captures[m] || [];
+    if (list.length === 0) {
+      alert(`Belum ada nilai yang diambil pada Tabel Data Pengamatan ${MODE_INFO[m].nama}. Klik tombol "📸 Ambil Nilai" terlebih dahulu.`);
+      return;
+    }
+
+    const judulInput = $('#input-judul-sesi').value.trim();
+    const sesiBaru = {
+      id: Date.now().toString(),
+      mode: m,
+      judul: judulInput || `Praktikum ${MODE_INFO[m].nama}`,
+      waktu: new Date().toISOString(),
+      sampel: [...list],
+    };
+
+    state.sesiTersimpan.unshift(sesiBaru);
+    saveSesi();
+    state.captures[m] = [];
+    saveCaptures();
+    $('#input-judul-sesi').value = '';
+    renderCaptureTable();
+    renderRiwayatSesi();
+    alert(`Sesi "${sesiBaru.judul}" berhasil disimpan ke Riwayat Praktikum!`);
   }
 
   // --- Mode Simulasi ---
@@ -904,22 +932,59 @@
     terimaPembacaan(payload);
   }
 
-  // --- Export CSV ---
+  // --- Export CSV dari Riwayat ---
   function exportCsv(sesiId) {
     const sesi = state.sesiTersimpan.find((s) => s.id === sesiId);
     if (!sesi || sesi.sampel.length === 0) return;
 
-    const allKeys = new Set();
-    sesi.sampel.forEach((s) => Object.keys(s.data || {}).forEach((k) => allKeys.add(k)));
-    const headers = ['waktu', ...Array.from(allKeys)];
+    const m = Number(sesi.mode);
+    const pUnit = state.config.satuanTekanan;
+    const tUnit = state.config.satuanSuhu;
+    let headers;
+    let rows;
 
-    const rows = [headers.join(',')];
-    for (const s of sesi.sampel) {
-      const row = [s.waktu, ...Array.from(allKeys).map((k) => s.data?.[k] ?? '')];
-      rows.push(row.join(','));
+    if (m === 2) {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, 'Gaya (N)', 'Luas (cm2)', 'Massa (g)'];
+      rows = sesi.sampel.map((r, i) => {
+        const src = r.data || r;
+        return [
+          i + 1,
+          r.waktu || '',
+          formatTekanan(src.p_pa ?? src.p_padat_pa),
+          src.gaya_n != null ? Number(src.gaya_n).toFixed(2) : '',
+          src.luas_cm2 != null ? Number(src.luas_cm2).toFixed(2) : '',
+          src.massa_g != null ? Number(src.massa_g).toFixed(1) : '',
+        ];
+      });
+    } else if (m === 0) {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, 'Kedalaman (cm)', 'Massa Jenis (kg/m3)'];
+      rows = sesi.sampel.map((r, i) => {
+        const src = r.data || r;
+        return [
+          i + 1,
+          r.waktu || '',
+          formatTekanan(src.p_pa ?? src.p_cair_pa),
+          src.tinggi_cm != null ? Number(src.tinggi_cm).toFixed(1) : '',
+          src.rho != null ? Number(src.rho).toFixed(0) : '',
+        ];
+      });
+    } else {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, `Suhu (${tUnit})`, 'Volume (m3)', 'Mol (mol)'];
+      rows = sesi.sampel.map((r, i) => {
+        const src = r.data || r;
+        return [
+          i + 1,
+          r.waktu || '',
+          formatTekanan(src.p_pa ?? src.p_gauge_pa),
+          formatSuhu(src.suhu_k),
+          src.volume_m3 != null ? Number(src.volume_m3).toFixed(4) : '',
+          src.n_mol != null ? Number(src.n_mol).toFixed(4) : '',
+        ];
+      });
     }
 
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -935,7 +1000,7 @@
     $('#sidebar-overlay').addEventListener('click', () => toggleSidebar(false));
 
     $$('.nav-btn').forEach((btn) => {
-      btn.addEventListener('click', () => bukaTab(btn.dataset.tab));
+      btn.addEventListener('click', () => bukaTab(btn.dataset.tab, false));
     });
 
     $$('.seg-btn').forEach((btn) => {
@@ -945,7 +1010,7 @@
     $$('.btn-go-mode').forEach((btn) => {
       btn.addEventListener('click', () => {
         pilihMode(Number(btn.dataset.goMode));
-        bukaTab('dashboard');
+        bukaTab('dashboard', true);
       });
     });
 
@@ -976,6 +1041,7 @@
     });
 
     $('#btn-ambil-data').addEventListener('click', ambilNilaiSaatIni);
+    $('#btn-simpan-sesi').addEventListener('click', simpanTabelKeRiwayat);
     $('#btn-export-capture').addEventListener('click', exportCaptureCsv);
     $('#btn-clear-capture').addEventListener('click', () => {
       state.captures[state.mode] = [];
@@ -1005,38 +1071,6 @@
       state.config.tema = state.config.tema === 'light' ? 'dark' : 'light';
       applyTheme();
       saveConfig();
-    });
-
-    $('#btn-toggle-rekam').addEventListener('click', () => {
-      if (!state.merekam) {
-        state.merekam = true;
-        state.sampelRekam = [];
-        $('#btn-toggle-rekam').textContent = 'Simpan & Selesai';
-        $('#btn-toggle-rekam').classList.replace('btn-primary', 'btn-danger');
-        $('#rekam-mode-nama').textContent = MODE_INFO[state.mode].nama;
-        $('#rekam-jumlah').textContent = '0';
-        $('#record-status').classList.remove('hidden');
-      } else {
-        state.merekam = false;
-        $('#btn-toggle-rekam').textContent = 'Mulai Rekam';
-        $('#btn-toggle-rekam').classList.replace('btn-danger', 'btn-primary');
-        $('#record-status').classList.add('hidden');
-
-        if (state.sampelRekam.length > 0) {
-          const judulInput = $('#input-judul-sesi').value.trim();
-          const sesiBaru = {
-            id: Date.now().toString(),
-            mode: state.mode,
-            judul: judulInput || `Praktikum ${MODE_INFO[state.mode].nama}`,
-            waktu: new Date().toISOString(),
-            sampel: state.sampelRekam,
-          };
-          state.sesiTersimpan.unshift(sesiBaru);
-          saveSesi();
-          renderRiwayatSesi();
-          $('#input-judul-sesi').value = '';
-        }
-      }
     });
 
     $('#riwayat-list').addEventListener('click', (e) => {
