@@ -147,25 +147,27 @@
     const statusText = $('#loading-status-text');
     if (!screen) return;
 
+    const dismiss = () => screen.classList.add('fade-out');
+    screen.addEventListener('click', dismiss);
+    setTimeout(dismiss, 1800);
+
     const steps = [
-      { pct: 35, text: 'Menyiapkan tampilan laboratorium...' },
-      { pct: 75, text: 'Memuat grafik & panduan praktikum...' },
+      { pct: 40, text: 'Menyiapkan tampilan laboratorium...' },
+      { pct: 80, text: 'Memuat grafik & panduan praktikum...' },
       { pct: 100, text: 'Siap digunakan!' },
     ];
 
     let idx = 0;
     const timer = setInterval(() => {
       if (idx < steps.length) {
-        bar.style.width = `${steps[idx].pct}%`;
-        statusText.textContent = steps[idx].text;
+        if (bar) bar.style.width = `${steps[idx].pct}%`;
+        if (statusText) statusText.textContent = steps[idx].text;
         idx++;
       } else {
         clearInterval(timer);
-        setTimeout(() => {
-          screen.classList.add('fade-out');
-        }, 250);
+        setTimeout(dismiss, 200);
       }
-    }, 320);
+    }, 300);
   }
 
   // --- Konversi Satuan ---
@@ -346,13 +348,13 @@
   function renderModeTheme() {
     document.documentElement.setAttribute('data-mode', String(state.mode));
     const info = MODE_INFO[state.mode];
-    $('#mode-banner-icon').innerHTML = MODE_SVGS[state.mode];
-    $('#mode-zone-tag').textContent = info.zona;
-    $('#mode-formula-pill').textContent = info.rumus;
-    $('#mode-banner-title').textContent = info.judul;
-    $('#mode-banner-desc').textContent = info.deskripsi;
-    $('#btn-ambil-data').textContent = `📸 Ambil Nilai ${info.nama}`;
-    $('#capture-title').textContent = `Tabel Data Pengamatan — ${info.nama}`;
+    if ($('#mode-banner-icon')) $('#mode-banner-icon').innerHTML = MODE_SVGS[state.mode];
+    if ($('#mode-zone-tag')) $('#mode-zone-tag').textContent = info.zona;
+    if ($('#mode-formula-pill')) $('#mode-formula-pill').textContent = info.rumus;
+    if ($('#mode-banner-title')) $('#mode-banner-title').textContent = info.judul;
+    if ($('#mode-banner-desc')) $('#mode-banner-desc').textContent = info.deskripsi;
+    if ($('#btn-ambil-data')) $('#btn-ambil-data').textContent = `📸 Ambil Nilai ${info.nama}`;
+    if ($('#capture-title')) $('#capture-title').textContent = `Tabel Data Pengamatan — ${info.nama}`;
   }
 
   function ambilNilaiSaatIni() {
@@ -592,7 +594,9 @@
   }
 
   function initChart() {
-    const ctx = $('#pressure-chart').getContext('2d');
+    const canvas = $('#pressure-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
     const info = MODE_INFO[state.mode];
     state.chart = new Chart(ctx, {
       type: 'line',
@@ -851,8 +855,8 @@
 
   function renderPraktikumVisibility() {
     const show = Boolean(state.modePraktikumAktif);
-    $('#banner-capture-wrap').classList.toggle('hidden', !show);
-    $('#capture-card').classList.toggle('hidden', !show);
+    $('#banner-capture-wrap')?.classList.toggle('hidden', !show);
+    $('#capture-card')?.classList.toggle('hidden', !show);
   }
 
   function bukaTab(tabName, mulaiPraktikum = false) {
@@ -995,9 +999,9 @@
 
   // --- Event Listeners ---
   function bindEvents() {
-    $('#btn-open-sidebar').addEventListener('click', () => toggleSidebar(true));
-    $('#btn-close-sidebar').addEventListener('click', () => toggleSidebar(false));
-    $('#sidebar-overlay').addEventListener('click', () => toggleSidebar(false));
+    $('#btn-open-sidebar')?.addEventListener('click', () => toggleSidebar(true));
+    $('#btn-close-sidebar')?.addEventListener('click', () => toggleSidebar(false));
+    $('#sidebar-overlay')?.addEventListener('click', () => toggleSidebar(false));
 
     $$('.nav-btn').forEach((btn) => {
       btn.addEventListener('click', () => bukaTab(btn.dataset.tab, false));
@@ -1023,13 +1027,13 @@
       });
     });
 
-    $('#btn-clear-chart').addEventListener('click', () => {
+    $('#btn-clear-chart')?.addEventListener('click', () => {
       state.riwayat = [];
       renderMetrics();
       renderChart();
     });
 
-    $('#metric-grid').addEventListener('click', (e) => {
+    $('#metric-grid')?.addEventListener('click', (e) => {
       const card = e.target.closest('.metric-flip-card');
       if (!card) return;
       const idx = card.dataset.cardIdx;
@@ -1040,15 +1044,15 @@
       else state.flippedCards.delete(key);
     });
 
-    $('#btn-ambil-data').addEventListener('click', ambilNilaiSaatIni);
-    $('#btn-simpan-sesi').addEventListener('click', simpanTabelKeRiwayat);
-    $('#btn-export-capture').addEventListener('click', exportCaptureCsv);
-    $('#btn-clear-capture').addEventListener('click', () => {
+    $('#btn-ambil-data')?.addEventListener('click', ambilNilaiSaatIni);
+    $('#btn-simpan-sesi')?.addEventListener('click', simpanTabelKeRiwayat);
+    $('#btn-export-capture')?.addEventListener('click', exportCaptureCsv);
+    $('#btn-clear-capture')?.addEventListener('click', () => {
       state.captures[state.mode] = [];
       saveCaptures();
       renderCaptureTable();
     });
-    $('#capture-table-wrap').addEventListener('click', (e) => {
+    $('#capture-table-wrap')?.addEventListener('click', (e) => {
       const delId = e.target.dataset.delCapture;
       if (delId) {
         state.captures[state.mode] = state.captures[state.mode].filter((r) => r.id !== delId);
@@ -1057,7 +1061,7 @@
       }
     });
 
-    $('#btn-connect').addEventListener('click', () => {
+    $('#btn-connect')?.addEventListener('click', () => {
       if (state.mqttStatus === 'online' || state.mqttStatus === 'connecting') {
         putuskanMqtt();
       } else {
@@ -1065,15 +1069,15 @@
       }
     });
 
-    $('#btn-simulasi').addEventListener('click', toggleSimulasi);
+    $('#btn-simulasi')?.addEventListener('click', toggleSimulasi);
 
-    $('#btn-theme').addEventListener('click', () => {
+    $('#btn-theme')?.addEventListener('click', () => {
       state.config.tema = state.config.tema === 'light' ? 'dark' : 'light';
       applyTheme();
       saveConfig();
     });
 
-    $('#riwayat-list').addEventListener('click', (e) => {
+    $('#riwayat-list')?.addEventListener('click', (e) => {
       const exportId = e.target.dataset.export;
       const hapusId = e.target.dataset.hapus;
       if (exportId) exportCsv(exportId);
@@ -1084,13 +1088,13 @@
       }
     });
 
-    $('#btn-hapus-semua-sesi').addEventListener('click', () => {
+    $('#btn-hapus-semua-sesi')?.addEventListener('click', () => {
       state.sesiTersimpan = [];
       saveSesi();
       renderRiwayatSesi();
     });
 
-    $('#form-pengaturan').addEventListener('submit', (e) => {
+    $('#form-pengaturan')?.addEventListener('submit', (e) => {
       e.preventDefault();
       state.config.host = $('#cfg-host').value.trim() || DEFAULT_CONFIG.host;
       state.config.protocol = $('#cfg-protocol').value;
@@ -1108,7 +1112,7 @@
       alert('Pengaturan berhasil disimpan!');
     });
 
-    $('#btn-reset-pengaturan').addEventListener('click', () => {
+    $('#btn-reset-pengaturan')?.addEventListener('click', () => {
       state.config = { ...DEFAULT_CONFIG };
       saveConfig();
       isiFormPengaturan();
@@ -1121,30 +1125,35 @@
   }
 
   function isiFormPengaturan() {
-    $('#cfg-host').value = state.config.host;
-    $('#cfg-protocol').value = state.config.protocol;
-    $('#cfg-port').value = state.config.port;
-    $('#cfg-path').value = state.config.path;
-    $('#cfg-id').value = state.config.idAlat;
-    $('#cfg-satuan-tekanan').value = state.config.satuanTekanan;
-    $('#cfg-satuan-suhu').value = state.config.satuanSuhu;
+    if ($('#cfg-host')) $('#cfg-host').value = state.config.host;
+    if ($('#cfg-protocol')) $('#cfg-protocol').value = state.config.protocol;
+    if ($('#cfg-port')) $('#cfg-port').value = state.config.port;
+    if ($('#cfg-path')) $('#cfg-path').value = state.config.path;
+    if ($('#cfg-id')) $('#cfg-id').value = state.config.idAlat;
+    if ($('#cfg-satuan-tekanan')) $('#cfg-satuan-tekanan').value = state.config.satuanTekanan;
+    if ($('#cfg-satuan-suhu')) $('#cfg-satuan-suhu').value = state.config.satuanSuhu;
   }
 
   function applyTheme() {
     document.documentElement.setAttribute('data-theme', state.config.tema);
-    $('#btn-theme').textContent = state.config.tema === 'light' ? '🌙 Mode Gelap' : '☀️ Mode Terang';
+    if ($('#btn-theme')) $('#btn-theme').textContent = state.config.tema === 'light' ? '🌙 Mode Gelap' : '☀️ Mode Terang';
   }
 
   // --- Init ---
-  applyTheme();
-  isiFormPengaturan();
-  renderModeTheme();
-  renderPanduanIcons();
-  initChart();
-  bindEvents();
-  renderStatus();
-  renderMetrics();
-  renderCaptureTable();
-  renderRiwayatSesi();
   runLoadingScreen();
+  try {
+    applyTheme();
+    isiFormPengaturan();
+    renderModeTheme();
+    renderPanduanIcons();
+    renderPraktikumVisibility();
+    initChart();
+    bindEvents();
+    renderStatus();
+    renderMetrics();
+    renderCaptureTable();
+    renderRiwayatSesi();
+  } catch (err) {
+    console.error('Init warning:', err);
+  }
 })();
