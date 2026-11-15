@@ -35,6 +35,54 @@
     </div>
   </div>
 
+  <!-- Ornamen Backdrop Jejepangan Halus (Sesuai Diorama Alat) -->
+  <div class="jp-backdrop" aria-hidden="true">
+    <!-- Matahari Terbit & Awan Tradisional (Kumo) di Kanan Atas -->
+    <svg class="jp-ornament jp-sun-clouds" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="310" cy="110" r="78" fill="currentColor" class="jp-sun" />
+      <path d="M160 135H370C382 135 392 125 392 113C392 101 382 91 370 91H352C345 75 329 64 310 64C290 64 273 76 267 94H210C198 94 188 104 188 116C188 118 188 120 189 121H160C151 121 144 127 144 135C144 135 151 135 160 135Z" fill="currentColor" class="jp-cloud" />
+      <path d="M40 190H210C220 190 228 182 228 172C228 162 220 154 210 154H190C184 140 170 131 154 131C136 131 121 142 116 158H75C65 158 57 166 57 176H40C33 176 28 182 28 190H40Z" fill="currentColor" class="jp-cloud" />
+    </svg>
+
+    <!-- Cabang Bunga Sakura Halus di Kiri Atas -->
+    <svg class="jp-ornament jp-sakura-branch" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 30C60 38 120 65 185 110M95 52C125 45 160 48 195 62M55 42C70 72 95 95 125 115" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" class="jp-branch" />
+      <g class="jp-blossom" fill="currentColor">
+        <circle cx="185" cy="110" r="10" />
+        <circle cx="195" cy="62" r="9" />
+        <circle cx="125" cy="115" r="8" />
+        <circle cx="145" cy="78" r="11" />
+        <circle cx="88" cy="48" r="9" />
+      </g>
+    </svg>
+
+    <!-- Siluet Torii, Pagoda & Gunung di Kanan Bawah -->
+    <svg class="jp-ornament jp-silhouette" viewBox="0 0 500 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Gunung berlapis -->
+      <path d="M0 220L110 125L215 220H0Z" fill="currentColor" opacity="0.35" />
+      <path d="M140 220L275 95L410 220H140Z" fill="currentColor" opacity="0.25" />
+      <!-- Gerbang Torii -->
+      <g fill="currentColor" opacity="0.55">
+        <path d="M365 118C395 124 435 124 465 118L462 126C434 131 396 131 368 126L365 118Z" />
+        <rect x="374" y="136" width="82" height="6" rx="2" />
+        <rect x="384" y="125" width="7" height="95" />
+        <rect x="439" y="125" width="7" height="95" />
+        <rect x="411" y="126" width="8" height="16" />
+      </g>
+    </svg>
+
+    <!-- Pita Gelombang Seigaiha Halus di Tepi Bawah -->
+    <div class="jp-seigaiha-strip"></div>
+
+    <!-- Kelopak Sakura Melayang Halus -->
+    <span class="sakura-petal p1"></span>
+    <span class="sakura-petal p2"></span>
+    <span class="sakura-petal p3"></span>
+    <span class="sakura-petal p4"></span>
+    <span class="sakura-petal p5"></span>
+    <span class="sakura-petal p6"></span>
+  </div>
+
   <div class="app-shell">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -134,10 +182,28 @@
             <h2 id="mode-banner-title">Praktikum Tekanan Zat Gas</h2>
             <p id="mode-banner-desc">Amati tekanan udara di dalam balon, suhu ruangan, dan perkiraan volume gas.</p>
           </div>
+          <div class="mode-banner-actions">
+            <button id="btn-ambil-data" class="btn btn-primary btn-capture">📸 Ambil Nilai Zat Gas</button>
+          </div>
         </div>
 
         <!-- Metric Cards -->
         <div id="metric-grid" class="metric-grid"></div>
+
+        <!-- Tabel Pengambilan Data Per Zat -->
+        <div class="card capture-card">
+          <div class="card-header">
+            <div>
+              <h2 id="capture-title">Tabel Data Pengamatan — Zat Gas</h2>
+              <p class="card-sub">Tekan tombol <strong>Ambil Nilai</strong> di atas untuk mencatat tekanan &amp; parameter saat ini.</p>
+            </div>
+            <div class="capture-actions">
+              <button id="btn-export-capture" class="btn btn-outline btn-sm">Unduh CSV</button>
+              <button id="btn-clear-capture" class="btn btn-danger btn-sm">Hapus Tabel</button>
+            </div>
+          </div>
+          <div id="capture-table-wrap" class="table-wrap"></div>
+        </div>
 
         <!-- Chart Card -->
         <div class="card chart-card">

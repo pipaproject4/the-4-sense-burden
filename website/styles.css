@@ -214,8 +214,125 @@ code {
   font-weight: 600;
 }
 
+/* ===== ORNAMEN BACKDROP JEJEPANGAN HALUS ===== */
+.jp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.jp-ornament {
+  position: absolute;
+  transition: color 0.35s ease, opacity 0.35s ease;
+}
+
+/* Matahari Terbit & Awan Kumo di Kanan Atas */
+.jp-sun-clouds {
+  top: -18px;
+  right: -24px;
+  width: 390px;
+  height: auto;
+  color: var(--primary);
+  opacity: 0.085;
+}
+
+.jp-sun-clouds .jp-cloud {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+/* Cabang Sakura di Kiri Atas (dekat area konten) */
+.jp-sakura-branch {
+  top: 0;
+  left: 265px;
+  width: 270px;
+  height: auto;
+  color: #e11d48;
+  opacity: 0.075;
+}
+
+.jp-sakura-branch .jp-branch {
+  color: #78350f;
+}
+
+/* Siluet Torii & Gunung di Kanan Bawah */
+.jp-silhouette {
+  bottom: 22px;
+  right: 0;
+  width: 460px;
+  height: auto;
+  color: var(--primary);
+  opacity: 0.075;
+}
+
+/* Pita Gelombang Seigaiha (Ombak Tradisional Jepang) di Tepi Bawah */
+.jp-seigaiha-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='28' viewBox='0 0 56 28'%3E%3Cg fill='none' stroke='%230284c7' stroke-width='1.5'%3E%3Ccircle cx='28' cy='28' r='24'/%3E%3Ccircle cx='28' cy='28' r='18'/%3E%3Ccircle cx='28' cy='28' r='12'/%3E%3Ccircle cx='28' cy='28' r='6'/%3E%3Ccircle cx='0' cy='28' r='24'/%3E%3Ccircle cx='0' cy='28' r='18'/%3E%3Ccircle cx='0' cy='28' r='12'/%3E%3Ccircle cx='56' cy='28' r='24'/%3E%3Ccircle cx='56' cy='28' r='18'/%3E%3Ccircle cx='56' cy='28' r='12'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 56px 28px;
+}
+
+[data-theme="dark"] .jp-sun-clouds,
+[data-theme="dark"] .jp-sakura-branch,
+[data-theme="dark"] .jp-silhouette {
+  opacity: 0.11;
+}
+
+[data-theme="dark"] .jp-seigaiha-strip {
+  opacity: 0.2;
+}
+
+/* Kelopak Bunga Sakura Melayang Halus */
+.sakura-petal {
+  position: absolute;
+  top: -24px;
+  width: 13px;
+  height: 10px;
+  background: linear-gradient(135deg, #fda4af, #fb7185);
+  border-radius: 80% 15% 80% 35%;
+  opacity: 0.26;
+  animation: sakuraFall 18s linear infinite;
+}
+
+[data-theme="dark"] .sakura-petal {
+  opacity: 0.2;
+}
+
+.sakura-petal.p1 { left: 22%; animation-duration: 19s; animation-delay: 0s; }
+.sakura-petal.p2 { left: 38%; width: 10px; height: 8px; animation-duration: 23s; animation-delay: 4s; }
+.sakura-petal.p3 { left: 55%; animation-duration: 21s; animation-delay: 8s; }
+.sakura-petal.p4 { left: 72%; width: 11px; height: 9px; animation-duration: 25s; animation-delay: 2s; }
+.sakura-petal.p5 { left: 86%; animation-duration: 20s; animation-delay: 11s; }
+.sakura-petal.p6 { left: 46%; width: 9px; height: 7px; animation-duration: 24s; animation-delay: 14s; }
+
+@keyframes sakuraFall {
+  0% {
+    transform: translate3d(0, -20px, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(35px, 50vh, 0) rotate(180deg);
+  }
+  100% {
+    transform: translate3d(-20px, 105vh, 0) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sakura-petal { animation: none; display: none; }
+}
+
 /* ===== SHELL & SIDEBAR ===== */
 .app-shell {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 275px 1fr;
   min-height: 100vh;
@@ -883,9 +1000,66 @@ code {
   font-size: 0.84rem;
 }
 
+/* Capture Button & Observation Table */
+.mode-banner-actions {
+  flex-shrink: 0;
+}
+
+.btn-capture {
+  padding: 12px 18px;
+  font-size: 0.94rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+
+.capture-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table th {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+.data-table td {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.84rem;
+}
+
+.data-table tbody tr:hover {
+  background: var(--primary-soft);
+}
+
 @media (max-width: 900px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
   .settings-grid { grid-template-columns: 1fr; }
   .mode-banner { flex-direction: column; align-items: flex-start; }
+  .mode-banner-actions { width: 100%; }
+  .btn-capture { width: 100%; }
+  .jp-sakura-branch { left: 0; width: 200px; }
+  .jp-sun-clouds { width: 280px; }
+  .jp-silhouette { width: 320px; }
 }

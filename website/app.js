@@ -3,6 +3,7 @@
 
   const STORAGE_KEY_CFG = '4sb_web_config_v1';
   const STORAGE_KEY_SESI = '4sb_web_sesi_v1';
+  const STORAGE_KEY_CAPTURES = '4sb_web_captures_v1';
   const MAX_RIWAYAT = 300;
 
   const DEFAULT_CONFIG = {
@@ -92,6 +93,7 @@
     merekam: false,
     sampelRekam: [],
     sesiTersimpan: loadSesi(),
+    captures: loadCaptures(),
     chart: null,
   };
 
@@ -122,6 +124,20 @@
 
   function saveSesi() {
     localStorage.setItem(STORAGE_KEY_SESI, JSON.stringify(state.sesiTersimpan));
+  }
+
+  function loadCaptures() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_CAPTURES);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' ? { 0: [], 1: [], 2: [], ...parsed } : { 0: [], 1: [], 2: [] };
+    } catch {
+      return { 0: [], 1: [], 2: [] };
+    }
+  }
+
+  function saveCaptures() {
+    localStorage.setItem(STORAGE_KEY_CAPTURES, JSON.stringify(state.captures));
   }
 
   // --- Loading / Splash Screen ---
@@ -324,6 +340,179 @@
     $('#mode-formula-pill').textContent = info.rumus;
     $('#mode-banner-title').textContent = info.judul;
     $('#mode-banner-desc').textContent = info.deskripsi;
+    $('#btn-ambil-data').textContent = `📸 Ambil Nilai ${info.nama}`;
+    $('#capture-title').textContent = `Tabel Data Pengamatan — ${info.nama}`;
+  }
+
+  function ambilNilaiSaatIni() {
+    const m = state.mode;
+    const sumber = state.terakhirPerMode[m] || (state.terakhir?.data?.mode === m ? state.terakhir : null);
+    if (!sumber) {
+      alert(`Belum ada data untuk ${MODE_INFO[m].nama}. Hubungkan alat atau nyalakan Simulasi terlebih dahulu.`);
+      return;
+    }
+
+    const waktu = new Date().toLocaleTimeString('id-ID', { hour12: false });
+    let entry;
+
+    if (m === 2) {
+      entry = {
+        id: Date.now().toString(),
+        waktu,
+        p_pa: ambilAngka(sumber, ['p_padat_pa', 'p_pa']),
+        gaya_n: ambilAngka(sumber, 'gaya_n'),
+        luas_cm2: ambilAngka(sumber, 'luas_cm2'),
+        massa_g: ambilAngka(sumber, 'massa_g'),
+      };
+    } else if (m === 0) {
+      entry = {
+        id: Date.now().toString(),
+        waktu,
+        p_pa: ambilAngka(sumber, ['p_cair_pa', 'p_pa']),
+        tinggi_cm: ambilAngka(sumber, 'tinggi_cm'),
+        rho: ambilAngka(sumber, 'rho') ?? 1000,
+      };
+    } else {
+      entry = {
+        id: Date.now().toString(),
+        waktu,
+        p_pa: ambilAngka(sumber, ['p_gauge_pa', 'p_pa']),
+        suhu_k: ambilAngka(sumber, 'suhu_k'),
+        volume_m3: ambilAngka(sumber, 'volume_m3'),
+        n_mol: ambilAngka(sumber, 'n_mol'),
+      };
+    }
+
+    state.captures[m].push(entry);
+    saveCaptures();
+    renderCaptureTable();
+  }
+
+  function renderCaptureTable() {
+    const wrap = $('#capture-table-wrap');
+    const m = state.mode;
+    const list = state.captures[m] || [];
+    const pUnit = state.config.satuanTekanan;
+    const tUnit = state.config.satuanSuhu;
+
+    if (list.length === 0) {
+      wrap.innerHTML = `<p class="card-sub">Belum ada data yang diambil untuk <strong>${MODE_INFO[m].nama}</strong>.</p>`;
+      return;
+    }
+
+    let headers = [];
+    let rowsHtml = '';
+
+    if (m === 2) {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, 'Gaya (N)', 'Luas (cm²)', 'Massa (g)', 'Aksi'];
+      rowsHtml = list
+        .map(
+          (r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${r.waktu}</td>
+          <td>${formatTekanan(r.p_pa)}</td>
+          <td>${r.gaya_n != null ? r.gaya_n.toFixed(2) : '--'}</td>
+          <td>${r.luas_cm2 != null ? r.luas_cm2.toFixed(2) : '--'}</td>
+          <td>${r.massa_g != null ? r.massa_g.toFixed(1) : '--'}</td>
+          <td><button class="btn btn-danger btn-sm" data-del-capture="${r.id}">Hapus</button></td>
+        </tr>`
+        )
+        .join('');
+    } else if (m === 0) {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, 'Kedalaman (cm)', 'Massa Jenis (kg/m³)', 'Aksi'];
+      rowsHtml = list
+        .map(
+          (r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${r.waktu}</td>
+          <td>${formatTekanan(r.p_pa)}</td>
+          <td>${r.tinggi_cm != null ? r.tinggi_cm.toFixed(1) : '--'}</td>
+          <td>${r.rho != null ? r.rho.toFixed(0) : '--'}</td>
+          <td><button class="btn btn-danger btn-sm" data-del-capture="${r.id}">Hapus</button></td>
+        </tr>`
+        )
+        .join('');
+    } else {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, `Suhu (${tUnit})`, 'Volume (m³)', 'Mol (mol)', 'Aksi'];
+      rowsHtml = list
+        .map(
+          (r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${r.waktu}</td>
+          <td>${formatTekanan(r.p_pa)}</td>
+          <td>${formatSuhu(r.suhu_k)}</td>
+          <td>${r.volume_m3 != null ? r.volume_m3.toFixed(4) : '--'}</td>
+          <td>${r.n_mol != null ? r.n_mol.toFixed(4) : '--'}</td>
+          <td><button class="btn btn-danger btn-sm" data-del-capture="${r.id}">Hapus</button></td>
+        </tr>`
+        )
+        .join('');
+    }
+
+    wrap.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>`;
+  }
+
+  function exportCaptureCsv() {
+    const m = state.mode;
+    const list = state.captures[m] || [];
+    if (list.length === 0) {
+      alert('Belum ada data pengamatan untuk diunduh.');
+      return;
+    }
+
+    const pUnit = state.config.satuanTekanan;
+    const tUnit = state.config.satuanSuhu;
+    let headers;
+    let rows;
+
+    if (m === 2) {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, 'Gaya (N)', 'Luas (cm2)', 'Massa (g)'];
+      rows = list.map((r, i) => [
+        i + 1,
+        r.waktu,
+        formatTekanan(r.p_pa),
+        r.gaya_n != null ? r.gaya_n.toFixed(2) : '',
+        r.luas_cm2 != null ? r.luas_cm2.toFixed(2) : '',
+        r.massa_g != null ? r.massa_g.toFixed(1) : '',
+      ]);
+    } else if (m === 0) {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, 'Kedalaman (cm)', 'Massa Jenis (kg/m3)'];
+      rows = list.map((r, i) => [
+        i + 1,
+        r.waktu,
+        formatTekanan(r.p_pa),
+        r.tinggi_cm != null ? r.tinggi_cm.toFixed(1) : '',
+        r.rho != null ? r.rho.toFixed(0) : '',
+      ]);
+    } else {
+      headers = ['No', 'Waktu', `Tekanan (${pUnit})`, `Suhu (${tUnit})`, 'Volume (m3)', 'Mol (mol)'];
+      rows = list.map((r, i) => [
+        i + 1,
+        r.waktu,
+        formatTekanan(r.p_pa),
+        formatSuhu(r.suhu_k),
+        r.volume_m3 != null ? r.volume_m3.toFixed(4) : '',
+        r.n_mol != null ? r.n_mol.toFixed(4) : '',
+      ]);
+    }
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pengamatan_${MODE_INFO[m].nama.toLowerCase().replace(/\s+/g, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function renderPanduanIcons() {
@@ -608,6 +797,7 @@
     kirimPerintahMode(modeBaru);
     renderModeTheme();
     renderMetrics();
+    renderCaptureTable();
     renderChart();
   }
 
@@ -712,6 +902,22 @@
       renderChart();
     });
 
+    $('#btn-ambil-data').addEventListener('click', ambilNilaiSaatIni);
+    $('#btn-export-capture').addEventListener('click', exportCaptureCsv);
+    $('#btn-clear-capture').addEventListener('click', () => {
+      state.captures[state.mode] = [];
+      saveCaptures();
+      renderCaptureTable();
+    });
+    $('#capture-table-wrap').addEventListener('click', (e) => {
+      const delId = e.target.dataset.delCapture;
+      if (delId) {
+        state.captures[state.mode] = state.captures[state.mode].filter((r) => r.id !== delId);
+        saveCaptures();
+        renderCaptureTable();
+      }
+    });
+
     $('#btn-connect').addEventListener('click', () => {
       if (state.mqttStatus === 'online' || state.mqttStatus === 'connecting') {
         putuskanMqtt();
@@ -789,6 +995,7 @@
       saveConfig();
       renderStatus();
       renderMetrics();
+      renderCaptureTable();
       renderChart();
       if (state.mqttStatus === 'online') hubungkanMqtt();
       alert('Pengaturan berhasil disimpan!');
@@ -801,6 +1008,7 @@
       applyTheme();
       renderStatus();
       renderMetrics();
+      renderCaptureTable();
       renderChart();
     });
   }
@@ -829,6 +1037,7 @@
   bindEvents();
   renderStatus();
   renderMetrics();
+  renderCaptureTable();
   renderRiwayatSesi();
   runLoadingScreen();
 })();
