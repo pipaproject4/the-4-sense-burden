@@ -147,7 +147,10 @@
     const statusText = $('#loading-status-text');
     if (!screen) return;
 
-    const dismiss = () => screen.classList.add('fade-out');
+    const dismiss = () => {
+      screen.classList.add('fade-out');
+      screen.style.display = 'none';
+    };
     screen.addEventListener('click', dismiss);
     setTimeout(dismiss, 1800);
 

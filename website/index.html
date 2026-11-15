@@ -8,13 +8,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://unpkg.com/mqtt@5.10.3/dist/mqtt.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css?v=4" />
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.3/dist/mqtt.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
   <!-- Loading / Splash Screen -->
-  <div id="loading-screen" class="loading-screen" role="status" aria-label="Memuat aplikasi">
+  <div id="loading-screen" class="loading-screen" role="status" aria-label="Memuat aplikasi" onclick="this.style.display='none'">
     <div class="loading-card">
       <div class="loading-logo-wrap">
         <img src="assets/logo.png" alt="Logo The 4 Sense Burden" class="loading-logo" />
@@ -34,6 +34,16 @@
       <p id="loading-status-text" class="loading-status">Menyiapkan sensor &amp; grafik...</p>
     </div>
   </div>
+  <script>
+    (function () {
+      var s = document.getElementById('loading-screen');
+      var b = document.getElementById('loading-bar-fill');
+      var t = document.getElementById('loading-status-text');
+      if (b) setTimeout(function () { b.style.width = '65%'; }, 150);
+      if (b && t) setTimeout(function () { b.style.width = '100%'; t.textContent = 'Siap digunakan!'; }, 600);
+      if (s) setTimeout(function () { s.classList.add('fade-out'); s.style.display = 'none'; }, 1050);
+    })();
+  </script>
 
   <div class="app-shell">
     <!-- Backdrop Overlay saat Menu Dibuka -->
@@ -378,6 +388,6 @@
     </main>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=4" defer></script>
 </body>
 </html>
