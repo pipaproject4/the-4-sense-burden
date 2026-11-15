@@ -1,40 +1,66 @@
 <!DOCTYPE html>
-<html lang="id" data-theme="light">
+<html lang="id" data-theme="light" data-mode="1">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The 4 Sense Burden — Dashboard Tekanan IoT</title>
+  <title>The 4 Sense Burden — Lab Tekanan SMP</title>
+  <link rel="icon" type="image/png" href="assets/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <!-- MQTT.js & Chart.js via CDN -->
   <script src="https://unpkg.com/mqtt@5.10.3/dist/mqtt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
+  <!-- Loading / Splash Screen -->
+  <div id="loading-screen" class="loading-screen" role="status" aria-label="Memuat aplikasi">
+    <div class="loading-card">
+      <div class="loading-logo-wrap">
+        <img src="assets/logo.png" alt="Logo The 4 Sense Burden" class="loading-logo" />
+      </div>
+      <h1 class="loading-title">The 4 Sense Burden</h1>
+      <p class="loading-subtitle">Laboratorium Mini Tekanan Zat Padat, Cair &amp; Gas</p>
+
+      <div class="loading-icons" aria-hidden="true">
+        <span class="mini-pill pill-padat">🏯 Zat Padat</span>
+        <span class="mini-pill pill-cair">🌬️ Zat Cair</span>
+        <span class="mini-pill pill-gas">🎈 Zat Gas</span>
+      </div>
+
+      <div class="loading-bar-track">
+        <div id="loading-bar-fill" class="loading-bar-fill"></div>
+      </div>
+      <p id="loading-status-text" class="loading-status">Menyiapkan sensor &amp; grafik...</p>
+    </div>
+  </div>
+
   <div class="app-shell">
-    <!-- Sidebar / Topbar Navigation -->
+    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-icon" aria-hidden="true">4S</div>
+        <img src="assets/logo.png" alt="Logo" class="brand-logo" />
         <div>
           <div class="brand-title">4 Sense Burden</div>
-          <div class="brand-sub">Web Monitoring Tekanan</div>
+          <div class="brand-sub">Lab Tekanan Siswa SMP</div>
         </div>
       </div>
 
       <nav class="nav-menu" aria-label="Navigasi Utama">
         <button class="nav-btn active" data-tab="dashboard">
-          <span class="nav-dot"></span>
+          <span class="nav-icon">📊</span>
           Dashboard Live
         </button>
+        <button class="nav-btn" data-tab="panduan">
+          <span class="nav-icon">📖</span>
+          Panduan Praktikum
+        </button>
         <button class="nav-btn" data-tab="praktikum">
-          <span class="nav-dot"></span>
-          Praktikum &amp; Riwayat
+          <span class="nav-icon">📝</span>
+          Rekam &amp; Riwayat
         </button>
         <button class="nav-btn" data-tab="pengaturan">
-          <span class="nav-dot"></span>
+          <span class="nav-icon">⚙️</span>
           Pengaturan
         </button>
       </nav>
@@ -46,7 +72,7 @@
             <span id="badge-mqtt" class="badge badge-offline">Terputus</span>
           </div>
           <div class="status-row">
-            <span class="status-label">Status ESP32</span>
+            <span class="status-label">Status Alat</span>
             <span id="badge-esp" class="badge badge-muted">Offline</span>
           </div>
           <div class="status-meta" id="meta-broker">broker.hivemq.com • alat01</div>
@@ -63,11 +89,11 @@
       <header class="topbar">
         <div>
           <h1 id="page-title">Dashboard Monitoring</h1>
-          <p id="page-subtitle" class="subtitle">Pantau sensor tekanan ESP32 secara real-time melalui MQTT WebSocket</p>
+          <p id="page-subtitle" class="subtitle">Pantau tekanan zat padat, cair, dan gas secara langsung dari alat</p>
         </div>
         <div class="topbar-actions">
           <span id="last-update" class="last-update">Belum ada data</span>
-          <button id="btn-theme" class="btn btn-outline btn-sm" title="Ganti Tema">Mode Gelap</button>
+          <button id="btn-theme" class="btn btn-outline btn-sm" title="Ganti Tema">🌙 Mode Gelap</button>
         </div>
       </header>
 
@@ -76,9 +102,15 @@
         <!-- Mode Selector -->
         <div class="toolbar">
           <div class="segmented-control" role="tablist" aria-label="Pilih Mode Zat">
-            <button class="seg-btn" data-mode="2">Zat Padat</button>
-            <button class="seg-btn" data-mode="0">Zat Cair</button>
-            <button class="seg-btn active" data-mode="1">Zat Gas</button>
+            <button class="seg-btn" data-mode="2">
+              <span class="seg-emoji">🏯</span> Zat Padat
+            </button>
+            <button class="seg-btn" data-mode="0">
+              <span class="seg-emoji">🌬️</span> Zat Cair
+            </button>
+            <button class="seg-btn active" data-mode="1">
+              <span class="seg-emoji">🎈</span> Zat Gas
+            </button>
           </div>
 
           <div class="range-control">
@@ -91,6 +123,19 @@
           </div>
         </div>
 
+        <!-- Mode Hero Banner (menyesuaikan zona alat fisik) -->
+        <div id="mode-banner" class="mode-banner">
+          <div id="mode-banner-icon" class="mode-banner-icon"></div>
+          <div class="mode-banner-body">
+            <div class="mode-banner-top">
+              <span id="mode-zone-tag" class="zone-tag">Zona Balon Udara Sakura</span>
+              <span id="mode-formula-pill" class="formula-pill">P · V = n · R · T</span>
+            </div>
+            <h2 id="mode-banner-title">Praktikum Tekanan Zat Gas</h2>
+            <p id="mode-banner-desc">Amati tekanan udara di dalam balon, suhu ruangan, dan perkiraan volume gas.</p>
+          </div>
+        </div>
+
         <!-- Metric Cards -->
         <div id="metric-grid" class="metric-grid"></div>
 
@@ -99,7 +144,7 @@
           <div class="card-header">
             <div>
               <h2 id="chart-title">Grafik Tekanan Real-Time</h2>
-              <p id="chart-subtitle" class="card-sub">Menampilkan data terbaru dari topik MQTT</p>
+              <p id="chart-subtitle" class="card-sub">Menampilkan perubahan tekanan secara langsung</p>
             </div>
             <button id="btn-clear-chart" class="btn btn-outline btn-sm">Bersihkan Grafik</button>
           </div>
@@ -109,16 +154,117 @@
         </div>
       </section>
 
-      <!-- TAB 2: PRAKTIKUM & RIWAYAT -->
+      <!-- TAB 2: PANDUAN PRAKTIKUM -->
+      <section id="tab-panduan" class="tab-panel">
+        <div class="card panduan-intro">
+          <div>
+            <h2>Panduan &amp; Rumus Praktikum IPA SMP</h2>
+            <p class="card-sub">Pelajari rumus dan langkah percobaan untuk setiap zona pada alat <strong>The 4 Sense Burden</strong> sebelum memulai pengukuran.</p>
+          </div>
+        </div>
+
+        <div class="panduan-grid">
+          <!-- Panduan Zat Padat -->
+          <article class="card panduan-card theme-padat">
+            <div class="panduan-head">
+              <div class="panduan-icon-box" id="icon-panduan-padat"></div>
+              <div>
+                <span class="zone-tag tag-padat">Zona Tengah • Pagoda &amp; Load Cell</span>
+                <h3>1. Tekanan pada Zat Padat</h3>
+              </div>
+            </div>
+            <div class="rumus-box">
+              <div class="rumus-main">P = F / A</div>
+              <ul class="rumus-legend">
+                <li><strong>P</strong> = Tekanan (Pa atau kPa)</li>
+                <li><strong>F</strong> = Gaya tekan benda, F = m · g (Newton)</li>
+                <li><strong>A</strong> = Luas bidang sentuh (cm² → m²)</li>
+              </ul>
+            </div>
+            <div class="langkah-box">
+              <h4>Langkah Percobaan:</h4>
+              <ol>
+                <li>Pilih mode <strong>Zat Padat</strong> di alat (tombol biru/NEXT) atau di website.</li>
+                <li>Letakkan benda uji di atas area sensor tengah (di antara 4 sensor ultrasonik).</li>
+                <li>Amati nilai massa <strong>m</strong>, gaya <strong>F</strong>, luas permukaan <strong>A</strong>, dan tekanan <strong>P</strong>.</li>
+                <li>Bandingkan tekanan saat posisi benda berdiri (luas kecil) vs tidur (luas besar)!</li>
+              </ol>
+            </div>
+            <button class="btn btn-padat btn-go-mode" data-go-mode="2">Buka Dashboard Zat Padat →</button>
+          </article>
+
+          <!-- Panduan Zat Cair -->
+          <article class="card panduan-card theme-cair">
+            <div class="panduan-head">
+              <div class="panduan-icon-box" id="icon-panduan-cair"></div>
+              <div>
+                <span class="zone-tag tag-cair">Zona Kanan • Kincir Angin &amp; Tabung Air</span>
+                <h3>2. Tekanan Hidrostatis (Zat Cair)</h3>
+              </div>
+            </div>
+            <div class="rumus-box">
+              <div class="rumus-main">P = ρ · g · h</div>
+              <ul class="rumus-legend">
+                <li><strong>P</strong> = Tekanan hidrostatis (Pa atau kPa)</li>
+                <li><strong>ρ</strong> = Massa jenis zat cair (air ≈ 1000 kg/m³)</li>
+                <li><strong>g</strong> = Percepatan gravitasi (9,81 m/s²)</li>
+                <li><strong>h</strong> = Kedalaman zat cair (cm → m)</li>
+              </ul>
+            </div>
+            <div class="langkah-box">
+              <h4>Langkah Percobaan:</h4>
+              <ol>
+                <li>Pilih mode <strong>Zat Cair</strong> pada alat atau website.</li>
+                <li>Isi atau atur ketinggian air di tabung sebelah kanan (dekat kincir angin).</li>
+                <li>Catat nilai kedalaman <strong>h (cm)</strong> dan tekanan hidrostatis <strong>P</strong>.</li>
+                <li>Perhatikan: semakin dalam permukaan air, semakin besar tekanannya!</li>
+              </ol>
+            </div>
+            <button class="btn btn-cair btn-go-mode" data-go-mode="0">Buka Dashboard Zat Cair →</button>
+          </article>
+
+          <!-- Panduan Zat Gas -->
+          <article class="card panduan-card theme-gas">
+            <div class="panduan-head">
+              <div class="panduan-icon-box" id="icon-panduan-gas"></div>
+              <div>
+                <span class="zone-tag tag-gas">Zona Kiri • Balon Udara Sakura</span>
+                <h3>3. Tekanan Zat Gas (Gas Ideal)</h3>
+              </div>
+            </div>
+            <div class="rumus-box">
+              <div class="rumus-main">P · V = n · R · T</div>
+              <ul class="rumus-legend">
+                <li><strong>P</strong> = Tekanan gas (Pa / kPa)</li>
+                <li><strong>V</strong> = Volume ruang/balon (m³)</li>
+                <li><strong>n</strong> = Jumlah mol gas (mol)</li>
+                <li><strong>R</strong> = Konstanta gas (8,314 J/mol·K), <strong>T</strong> = Suhu (K)</li>
+              </ul>
+            </div>
+            <div class="langkah-box">
+              <h4>Langkah Percobaan:</h4>
+              <ol>
+                <li>Pilih mode <strong>Zat Gas</strong> pada alat atau website.</li>
+                <li>Pasang balon pada botol di zona balon udara sakura sebelah kiri.</li>
+                <li>Pompa atau tekan udara perlahan dan amati perubahan tekanan <strong>P</strong>, suhu <strong>T</strong>, dan volume balon <strong>V</strong>.</li>
+                <li>Rekam hasil percobaan di tab <strong>Rekam &amp; Riwayat</strong> untuk diunduh ke Excel/CSV!</li>
+              </ol>
+            </div>
+            <button class="btn btn-gas btn-go-mode" data-go-mode="1">Buka Dashboard Zat Gas →</button>
+          </article>
+        </div>
+      </section>
+
+      <!-- TAB 3: REKAM & RIWAYAT -->
       <section id="tab-praktikum" class="tab-panel">
         <div class="card record-card">
           <div class="card-header">
             <div>
               <h2>Perekaman Sesi Praktikum</h2>
-              <p class="card-sub">Rekam sampel data sensor dari mode aktif untuk dianalisis dan diekspor ke CSV.</p>
+              <p class="card-sub">Rekam data sensor dari mode yang sedang aktif lalu unduh menjadi file CSV untuk laporan praktikum.</p>
             </div>
             <div class="record-controls">
-              <input id="input-judul-sesi" type="text" class="input" placeholder="Judul sesi (cth: Percobaan Hukum Boyle)" />
+              <input id="input-judul-sesi" type="text" class="input" placeholder="Judul sesi (cth: Percobaan Kelompok 1)" />
               <button id="btn-toggle-rekam" class="btn btn-primary">Mulai Rekam</button>
             </div>
           </div>
@@ -132,7 +278,7 @@
           <div class="card-header">
             <div>
               <h2>Riwayat Sesi Tersimpan</h2>
-              <p class="card-sub">Disimpan secara lokal di browser Anda (localStorage).</p>
+              <p class="card-sub">Tersimpan otomatis di browser Anda (localStorage).</p>
             </div>
             <button id="btn-hapus-semua-sesi" class="btn btn-danger btn-sm">Hapus Semua</button>
           </div>
@@ -140,12 +286,12 @@
         </div>
       </section>
 
-      <!-- TAB 3: PENGATURAN -->
+      <!-- TAB 4: PENGATURAN -->
       <section id="tab-pengaturan" class="tab-panel">
         <div class="settings-grid">
           <form id="form-pengaturan" class="card">
             <h2>Koneksi MQTT WebSocket</h2>
-            <p class="card-sub">Browser berkomunikasi dengan broker melalui WebSocket (WS/WSS), bukan port TCP 1883.</p>
+            <p class="card-sub">Browser terhubung ke broker melalui WebSocket (WS/WSS).</p>
 
             <div class="form-group">
               <label for="cfg-host">Host Broker</label>
@@ -206,7 +352,7 @@
 
           <div class="card info-card">
             <h2>Informasi Topik MQTT</h2>
-            <p class="card-sub">Website ini menggunakan struktur topik yang sama dengan aplikasi mobile Flutter:</p>
+            <p class="card-sub">Topik ini sama persis dengan yang dipakai oleh ESP32 dan aplikasi mobile Flutter:</p>
             <ul class="topic-list">
               <li><span>Data Sensor:</span> <code id="info-topik-data">tekanan/alat01/data</code></li>
               <li><span>Status Alat:</span> <code id="info-topik-status">tekanan/alat01/status</code></li>
@@ -225,4 +371,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-

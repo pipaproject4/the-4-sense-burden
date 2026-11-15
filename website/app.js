@@ -16,22 +16,77 @@
     tema: 'light',
   };
 
+  // SVG Ikon menyesuaikan zona diorama alat fisik
+  const MODE_SVGS = {
+    2: `<svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 24L32 10L52 24H12Z" fill="#d97706"/>
+      <path d="M16 36L32 24L48 36H16Z" fill="#f59e0b"/>
+      <rect x="20" y="36" width="24" height="16" rx="2" fill="#92400e"/>
+      <rect x="27" y="42" width="10" height="10" rx="1" fill="#fde68a"/>
+      <rect x="10" y="52" width="44" height="5" rx="2.5" fill="#78350f"/>
+    </svg>`,
+    0: `<svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 54L28 28H36L40 54H24Z" fill="#0284c7"/>
+      <rect x="29" y="42" width="6" height="12" rx="1" fill="#e0f2fe"/>
+      <circle cx="32" cy="26" r="4" fill="#0369a1"/>
+      <path d="M32 26L14 14L18 10L32 26Z" fill="#38bdf8"/>
+      <path d="M32 26L50 38L46 42L32 26Z" fill="#38bdf8"/>
+      <path d="M32 26L44 8L48 12L32 26Z" fill="#7dd3fc"/>
+      <path d="M32 26L20 44L16 40L32 26Z" fill="#7dd3fc"/>
+    </svg>`,
+    1: `<svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="32" cy="24" rx="16" ry="18" fill="#e11d48"/>
+      <path d="M32 6C25 12 25 36 32 42C39 36 39 12 32 6Z" fill="#ffe4e6"/>
+      <path d="M24 41L27 47H37L40 41" stroke="#9f1239" stroke-width="2"/>
+      <rect x="26" y="47" width="12" height="8" rx="2" fill="#b45309"/>
+      <circle cx="24" cy="18" r="2.2" fill="#fda4af"/>
+      <circle cx="40" cy="20" r="2.2" fill="#fda4af"/>
+    </svg>`,
+  };
+
   const MODE_INFO = {
-    2: { nama: 'Zat Padat', keyTekanan: ['p_padat_pa', 'p_pa'] },
-    0: { nama: 'Zat Cair', keyTekanan: ['p_cair_pa', 'p_pa'] },
-    1: { nama: 'Zat Gas', keyTekanan: ['p_gauge_pa', 'p_pa'] },
+    2: {
+      nama: 'Zat Padat',
+      keyTekanan: ['p_padat_pa', 'p_pa'],
+      zona: 'Zona Tengah • Pagoda & Load Cell',
+      rumus: 'P = F / A',
+      judul: 'Praktikum Tekanan Zat Padat',
+      deskripsi: 'Amati bagaimana gaya tekan (F) dan luas bidang sentuh (A) memengaruhi besarnya tekanan pada benda padat.',
+      color: '#d97706',
+      bg: 'rgba(217, 119, 6, 0.14)',
+    },
+    0: {
+      nama: 'Zat Cair',
+      keyTekanan: ['p_cair_pa', 'p_pa'],
+      zona: 'Zona Kanan • Kincir Angin & Tabung Air',
+      rumus: 'P = ρ · g · h',
+      judul: 'Praktikum Tekanan Hidrostatis (Zat Cair)',
+      deskripsi: 'Amati bagaimana kedalaman air (h) dan massa jenis fluida (ρ) memengaruhi tekanan di dalam tabung.',
+      color: '#0284c7',
+      bg: 'rgba(2, 132, 199, 0.14)',
+    },
+    1: {
+      nama: 'Zat Gas',
+      keyTekanan: ['p_gauge_pa', 'p_pa'],
+      zona: 'Zona Kiri • Balon Udara Sakura',
+      rumus: 'P · V = n · R · T',
+      judul: 'Praktikum Tekanan Zat Gas',
+      deskripsi: 'Amati tekanan udara di dalam balon, suhu ruangan (T), dan perkiraan volume gas (V).',
+      color: '#e11d48',
+      bg: 'rgba(225, 29, 72, 0.14)',
+    },
   };
 
   const state = {
     config: loadConfig(),
     mode: 1, // 2=Padat, 0=Cair, 1=Gas
     rangeMenit: 1,
-    mqttStatus: 'offline', // offline | connecting | online
+    mqttStatus: 'offline',
     espOnline: false,
     simulasiAktif: false,
     simulasiTimer: null,
     client: null,
-    riwayat: [], // { waktu: Date, data: {...} }
+    riwayat: [],
     terakhirPerMode: { 0: null, 1: null, 2: null },
     terakhir: null,
     merekam: false,
@@ -40,7 +95,6 @@
     chart: null,
   };
 
-  // --- DOM Helpers ---
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -70,7 +124,35 @@
     localStorage.setItem(STORAGE_KEY_SESI, JSON.stringify(state.sesiTersimpan));
   }
 
-  // --- Konversi Satuan (selaras dengan mqtt_service.dart) ---
+  // --- Loading / Splash Screen ---
+  function runLoadingScreen() {
+    const screen = $('#loading-screen');
+    const bar = $('#loading-bar-fill');
+    const statusText = $('#loading-status-text');
+    if (!screen) return;
+
+    const steps = [
+      { pct: 35, text: 'Menyiapkan tampilan laboratorium...' },
+      { pct: 75, text: 'Memuat grafik & panduan praktikum...' },
+      { pct: 100, text: 'Siap digunakan!' },
+    ];
+
+    let idx = 0;
+    const timer = setInterval(() => {
+      if (idx < steps.length) {
+        bar.style.width = `${steps[idx].pct}%`;
+        statusText.textContent = steps[idx].text;
+        idx++;
+      } else {
+        clearInterval(timer);
+        setTimeout(() => {
+          screen.classList.add('fade-out');
+        }, 250);
+      }
+    }, 320);
+  }
+
+  // --- Konversi Satuan ---
   function konversiTekanan(pa) {
     if (pa == null || Number.isNaN(pa)) return null;
     if (state.config.satuanTekanan === 'Pa') return pa;
@@ -181,7 +263,7 @@
           stat: hitungStatistik(0, ['p_cair_pa', 'p_pa'], konversiTekanan, pDec),
         },
         {
-          judul: 'Kedalaman (h)',
+          judul: 'Kedalaman Air (h)',
           nilai: tinggi != null ? tinggi.toFixed(1) : '--',
           satuan: 'cm',
           rumus: 'Sensor kedalaman',
@@ -197,7 +279,6 @@
       ];
     }
 
-    // Default Mode 1: Zat Gas
     const pPa = ambilAngka(sumber, ['p_gauge_pa', 'p_pa']);
     const suhuK = ambilAngka(sumber, 'suhu_k');
     const vol = ambilAngka(sumber, 'volume_m3');
@@ -218,7 +299,7 @@
         stat: hitungStatistik(1, 'suhu_k', konversiSuhu, 1),
       },
       {
-        judul: 'Volume Ruang (V)',
+        judul: 'Volume Balon (V)',
         nilai: vol != null ? vol.toFixed(4) : '--',
         satuan: 'm³',
         rumus: 'V wadah',
@@ -235,6 +316,22 @@
   }
 
   // --- Render UI ---
+  function renderModeTheme() {
+    document.documentElement.setAttribute('data-mode', String(state.mode));
+    const info = MODE_INFO[state.mode];
+    $('#mode-banner-icon').innerHTML = MODE_SVGS[state.mode];
+    $('#mode-zone-tag').textContent = info.zona;
+    $('#mode-formula-pill').textContent = info.rumus;
+    $('#mode-banner-title').textContent = info.judul;
+    $('#mode-banner-desc').textContent = info.deskripsi;
+  }
+
+  function renderPanduanIcons() {
+    $('#icon-panduan-padat').innerHTML = MODE_SVGS[2];
+    $('#icon-panduan-cair').innerHTML = MODE_SVGS[0];
+    $('#icon-panduan-gas').innerHTML = MODE_SVGS[1];
+  }
+
   function renderMetrics() {
     const grid = $('#metric-grid');
     const specs = getKartuSpecs(state.mode);
@@ -259,6 +356,7 @@
 
   function initChart() {
     const ctx = $('#pressure-chart').getContext('2d');
+    const info = MODE_INFO[state.mode];
     state.chart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -267,12 +365,12 @@
           {
             label: `Tekanan (${state.config.satuanTekanan})`,
             data: [],
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37, 99, 235, 0.12)',
-            borderWidth: 2.5,
-            tension: 0.28,
+            borderColor: info.color,
+            backgroundColor: info.bg,
+            borderWidth: 2.8,
+            tension: 0.3,
             fill: true,
-            pointRadius: 2,
+            pointRadius: 2.5,
           },
         ],
       },
@@ -299,7 +397,7 @@
   function renderChart() {
     if (!state.chart) return;
     const cutoff = Date.now() - state.rangeMenit * 60 * 1000;
-    const keys = MODE_INFO[state.mode].keyTekanan;
+    const info = MODE_INFO[state.mode];
     const filtered = state.riwayat.filter(
       (item) => Number(item.data.mode) === state.mode && item.waktu.getTime() >= cutoff
     );
@@ -308,16 +406,19 @@
       item.waktu.toLocaleTimeString('id-ID', { hour12: false })
     );
     const values = filtered.map((item) => {
-      const pa = ambilAngka(item, keys);
+      const pa = ambilAngka(item, info.keyTekanan);
       return konversiTekanan(pa);
     });
 
+    const ds = state.chart.data.datasets[0];
     state.chart.data.labels = labels;
-    state.chart.data.datasets[0].label = `Tekanan ${MODE_INFO[state.mode].nama} (${state.config.satuanTekanan})`;
-    state.chart.data.datasets[0].data = values;
+    ds.label = `Tekanan ${info.nama} (${state.config.satuanTekanan})`;
+    ds.borderColor = info.color;
+    ds.backgroundColor = info.bg;
+    ds.data = values;
     state.chart.update();
 
-    $('#chart-title').textContent = `Grafik Tekanan ${MODE_INFO[state.mode].nama}`;
+    $('#chart-title').textContent = `Grafik Tekanan ${info.nama}`;
   }
 
   function renderStatus() {
@@ -499,6 +600,22 @@
     }
   }
 
+  function pilihMode(modeBaru) {
+    state.mode = modeBaru;
+    $$('.seg-btn').forEach((b) => {
+      b.classList.toggle('active', Number(b.dataset.mode) === modeBaru);
+    });
+    kirimPerintahMode(modeBaru);
+    renderModeTheme();
+    renderMetrics();
+    renderChart();
+  }
+
+  function bukaTab(tabName) {
+    $$('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabName));
+    $$('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === `tab-${tabName}`));
+  }
+
   // --- Mode Simulasi ---
   function toggleSimulasi() {
     state.simulasiAktif = !state.simulasiAktif;
@@ -521,7 +638,7 @@
     if (state.mode === 2) {
       const massa = 500 + Math.round((Math.random() - 0.5) * 40);
       const gaya = (massa / 1000) * 9.81;
-      const luas = 4.0; // cm2
+      const luas = 4.0;
       const pa = gaya / (luas / 10000);
       payload = { mode: 2, mode_nama: 'Zat Padat', p_padat_pa: pa, p_pa: pa, gaya_n: gaya, luas_cm2: luas, massa_g: massa };
     } else if (state.mode === 0) {
@@ -565,30 +682,21 @@
 
   // --- Event Listeners ---
   function bindEvents() {
-    // Tab navigation
     $$('.nav-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        $$('.nav-btn').forEach((b) => b.classList.remove('active'));
-        $$('.tab-panel').forEach((p) => p.classList.remove('active'));
-        btn.classList.add('active');
-        const tab = btn.dataset.tab;
-        $(`#tab-${tab}`).classList.add('active');
-      });
+      btn.addEventListener('click', () => bukaTab(btn.dataset.tab));
     });
 
-    // Mode selector
     $$('.seg-btn').forEach((btn) => {
+      btn.addEventListener('click', () => pilihMode(Number(btn.dataset.mode)));
+    });
+
+    $$('.btn-go-mode').forEach((btn) => {
       btn.addEventListener('click', () => {
-        $$('.seg-btn').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.mode = Number(btn.dataset.mode);
-        kirimPerintahMode(state.mode);
-        renderMetrics();
-        renderChart();
+        pilihMode(Number(btn.dataset.goMode));
+        bukaTab('dashboard');
       });
     });
 
-    // Range selector
     $$('.range-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         $$('.range-btn').forEach((b) => b.classList.remove('active'));
@@ -614,14 +722,12 @@
 
     $('#btn-simulasi').addEventListener('click', toggleSimulasi);
 
-    // Theme toggle
     $('#btn-theme').addEventListener('click', () => {
       state.config.tema = state.config.tema === 'light' ? 'dark' : 'light';
       applyTheme();
       saveConfig();
     });
 
-    // Praktikum record
     $('#btn-toggle-rekam').addEventListener('click', () => {
       if (!state.merekam) {
         state.merekam = true;
@@ -671,7 +777,6 @@
       renderRiwayatSesi();
     });
 
-    // Settings form
     $('#form-pengaturan').addEventListener('submit', (e) => {
       e.preventDefault();
       state.config.host = $('#cfg-host').value.trim() || DEFAULT_CONFIG.host;
@@ -712,16 +817,18 @@
 
   function applyTheme() {
     document.documentElement.setAttribute('data-theme', state.config.tema);
-    $('#btn-theme').textContent = state.config.tema === 'light' ? 'Mode Gelap' : 'Mode Terang';
+    $('#btn-theme').textContent = state.config.tema === 'light' ? '🌙 Mode Gelap' : '☀️ Mode Terang';
   }
 
   // --- Init ---
   applyTheme();
   isiFormPengaturan();
+  renderModeTheme();
+  renderPanduanIcons();
   initChart();
   bindEvents();
   renderStatus();
   renderMetrics();
   renderRiwayatSesi();
+  runLoadingScreen();
 })();
-
