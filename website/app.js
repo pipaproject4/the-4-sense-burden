@@ -801,9 +801,18 @@
     renderChart();
   }
 
+  function toggleSidebar(forceOpen) {
+    const sb = $('#sidebar');
+    const ov = $('#sidebar-overlay');
+    const isOpen = forceOpen !== undefined ? forceOpen : !sb.classList.contains('open');
+    sb.classList.toggle('open', isOpen);
+    ov.classList.toggle('open', isOpen);
+  }
+
   function bukaTab(tabName) {
     $$('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabName));
     $$('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === `tab-${tabName}`));
+    toggleSidebar(false);
   }
 
   // --- Mode Simulasi ---
@@ -872,6 +881,10 @@
 
   // --- Event Listeners ---
   function bindEvents() {
+    $('#btn-open-sidebar').addEventListener('click', () => toggleSidebar(true));
+    $('#btn-close-sidebar').addEventListener('click', () => toggleSidebar(false));
+    $('#sidebar-overlay').addEventListener('click', () => toggleSidebar(false));
+
     $$('.nav-btn').forEach((btn) => {
       btn.addEventListener('click', () => bukaTab(btn.dataset.tab));
     });

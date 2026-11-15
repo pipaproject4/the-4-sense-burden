@@ -36,14 +36,18 @@
   </div>
 
   <div class="app-shell">
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    <!-- Backdrop Overlay saat Menu Dibuka -->
+    <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+
+    <!-- Sidebar (Slide-over Drawer) -->
+    <aside id="sidebar" class="sidebar">
       <div class="brand">
         <img src="assets/logo.png" alt="Logo" class="brand-logo" />
-        <div>
+        <div class="brand-text">
           <div class="brand-title">4 Sense Burden</div>
           <div class="brand-sub">Lab Tekanan Siswa SMP</div>
         </div>
+        <button id="btn-close-sidebar" class="btn-icon-close" title="Tutup Menu" aria-label="Tutup Menu">✕</button>
       </div>
 
       <nav class="nav-menu" aria-label="Navigasi Utama">
@@ -87,9 +91,12 @@
     <!-- Main Content -->
     <main class="main-content">
       <header class="topbar">
-        <div>
-          <h1 id="page-title">Dashboard Monitoring</h1>
-          <p id="page-subtitle" class="subtitle">Pantau tekanan zat padat, cair, dan gas secara langsung dari alat</p>
+        <div class="topbar-left">
+          <button id="btn-open-sidebar" class="btn btn-outline btn-menu" title="Buka Menu Navigasi">☰ Menu</button>
+          <div>
+            <h1 id="page-title">Dashboard Monitoring</h1>
+            <p id="page-subtitle" class="subtitle">Pantau tekanan zat padat, cair, dan gas secara langsung dari alat</p>
+          </div>
         </div>
         <div class="topbar-actions">
           <span id="last-update" class="last-update">Belum ada data</span>
