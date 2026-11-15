@@ -94,6 +94,7 @@
     sampelRekam: [],
     sesiTersimpan: loadSesi(),
     captures: loadCaptures(),
+    flippedCards: new Set(),
     chart: null,
   };
 
@@ -236,10 +237,11 @@
       const massa = ambilAngka(sumber, 'massa_g');
       return [
         {
-          judul: 'Tekanan Zat Padat',
+          judul: 'Tekanan Zat Padat (P)',
           nilai: formatTekanan(pPa),
           satuan: pUnit,
           rumus: 'P = F / A',
+          penjelasan: 'Besar gaya tekan (F) per satuan luas bidang sentuh (A). Semakin kecil luas, tekanan semakin besar.',
           stat: hitungStatistik(2, ['p_padat_pa', 'p_pa'], konversiTekanan, pDec),
         },
         {
@@ -247,20 +249,23 @@
           nilai: gaya != null ? gaya.toFixed(2) : '--',
           satuan: 'N',
           rumus: 'F = m · g',
+          penjelasan: 'Gaya berat benda yang menekan permukaan sensor (massa dikali gravitasi 9,81 m/s²).',
           stat: hitungStatistik(2, 'gaya_n', (v) => v, 2),
         },
         {
           judul: 'Luas Bidang (A)',
           nilai: luas != null ? luas.toFixed(2) : '--',
           satuan: 'cm²',
-          rumus: 'A = luas kontak',
+          rumus: 'A = p × l',
+          penjelasan: 'Luas permukaan benda yang bersentuhan langsung dengan alas beban.',
           stat: hitungStatistik(2, 'luas_cm2', (v) => v, 2),
         },
         {
           judul: 'Massa Beban (m)',
           nilai: massa != null ? massa.toFixed(1) : '--',
           satuan: 'g',
-          rumus: 'Load Cell',
+          rumus: 'Sensor Load Cell',
+          penjelasan: 'Massa benda uji yang diukur secara langsung oleh sensor berat (Load Cell HX711).',
           stat: hitungStatistik(2, 'massa_g', (v) => v, 1),
         },
       ];
@@ -272,24 +277,27 @@
       const rho = ambilAngka(sumber, 'rho') ?? (sumber ? 1000 : null);
       return [
         {
-          judul: 'Tekanan Hidrostatis',
+          judul: 'Tekanan Hidrostatis (P)',
           nilai: formatTekanan(pPa),
           satuan: pUnit,
           rumus: 'P = ρ · g · h',
+          penjelasan: 'Tekanan zat cair yang dipengaruhi oleh massa jenis (ρ), gravitasi (g), dan kedalaman (h).',
           stat: hitungStatistik(0, ['p_cair_pa', 'p_pa'], konversiTekanan, pDec),
         },
         {
           judul: 'Kedalaman Air (h)',
           nilai: tinggi != null ? tinggi.toFixed(1) : '--',
           satuan: 'cm',
-          rumus: 'Sensor kedalaman',
+          rumus: 'h = P / (ρ · g)',
+          penjelasan: 'Jarak titik ukur dari permukaan atas air di dalam tabung uji.',
           stat: hitungStatistik(0, 'tinggi_cm', (v) => v, 1),
         },
         {
           judul: 'Massa Jenis (ρ)',
           nilai: rho != null ? rho.toFixed(0) : '--',
           satuan: 'kg/m³',
-          rumus: 'Fluida uji',
+          rumus: 'ρ air ≈ 1000',
+          penjelasan: 'Kerapatan zat cair yang digunakan dalam percobaan (air murni ≈ 1000 kg/m³).',
           stat: hitungStatistik(0, 'rho', (v) => v, 0),
         },
       ];
@@ -301,31 +309,35 @@
     const mol = ambilAngka(sumber, 'n_mol');
     return [
       {
-        judul: 'Tekanan Gas (Gauge)',
+        judul: 'Tekanan Gas (P)',
         nilai: formatTekanan(pPa),
         satuan: pUnit,
-        rumus: 'P·V = n·R·T',
+        rumus: 'P · V = n · R · T',
+        penjelasan: 'Tekanan udara di dalam ruang/balon yang diukur oleh sensor tekanan gas.',
         stat: hitungStatistik(1, ['p_gauge_pa', 'p_pa'], konversiTekanan, pDec),
       },
       {
         judul: 'Suhu Gas (T)',
         nilai: formatSuhu(suhuK),
         satuan: state.config.satuanSuhu,
-        rumus: 'T (K / °C)',
+        rumus: state.config.satuanSuhu === 'K' ? 'T = °C + 273,15' : 'T = K - 273,15',
+        penjelasan: 'Suhu udara terukur oleh sensor DHT22 (satuan dapat diubah antara °C dan K di Pengaturan).',
         stat: hitungStatistik(1, 'suhu_k', konversiSuhu, 1),
       },
       {
         judul: 'Volume Balon (V)',
         nilai: vol != null ? vol.toFixed(4) : '--',
         satuan: 'm³',
-        rumus: 'V wadah',
+        rumus: 'V = (4/3) · π · r³',
+        penjelasan: 'Perkiraan volume ruang udara di dalam balon dalam satuan meter kubik (m³).',
         stat: hitungStatistik(1, 'volume_m3', (v) => v, 4),
       },
       {
         judul: 'Jumlah Mol (n)',
         nilai: mol != null ? mol.toFixed(4) : '--',
         satuan: 'mol',
-        rumus: 'n = PV / RT',
+        rumus: 'n = (P · V) / (R · T)',
+        penjelasan: 'Banyaknya partikel molekul gas berdasarkan persamaan gas ideal (R = 8,314 J/mol·K).',
         stat: hitungStatistik(1, 'n_mol', (v) => v, 4),
       },
     ];
@@ -524,23 +536,60 @@
   function renderMetrics() {
     const grid = $('#metric-grid');
     const specs = getKartuSpecs(state.mode);
-    grid.innerHTML = specs
-      .map(
-        (s) => `
-      <div class="metric-card">
-        <div class="metric-top">
-          <span class="metric-title">${s.judul}</span>
-          <span class="metric-formula">${s.rumus}</span>
-        </div>
-        <div class="metric-value">${s.nilai}<span class="metric-unit">${s.satuan}</span></div>
-        <div class="metric-stats">
-          <span>Min: ${s.stat ? s.stat.min : '--'}</span>
-          <span>Avg: ${s.stat ? s.stat.avg : '--'}</span>
-          <span>Max: ${s.stat ? s.stat.max : '--'}</span>
-        </div>
-      </div>`
-      )
-      .join('');
+
+    if (grid.dataset.renderedMode !== String(state.mode)) {
+      grid.dataset.renderedMode = String(state.mode);
+      grid.innerHTML = specs
+        .map((s, idx) => {
+          const key = `${state.mode}_${idx}`;
+          const isFlipped = state.flippedCards.has(key) ? 'flipped' : '';
+          return `
+        <div class="metric-flip-card ${isFlipped}" data-card-idx="${idx}" title="Klik untuk membalik kartu">
+          <div class="metric-flip-inner">
+            <!-- Sisi Depan: Hanya Keterangan, Nilai & Satuan -->
+            <div class="metric-face metric-face-front">
+              <div class="metric-top">
+                <span class="metric-title">${s.judul}</span>
+                <span class="flip-hint">🔄 Info</span>
+              </div>
+              <div class="metric-value">
+                <span class="js-val">${s.nilai}</span><span class="metric-unit js-unit">${s.satuan}</span>
+              </div>
+              <div class="metric-front-sub">Klik kotak untuk lihat rumus &amp; arti</div>
+            </div>
+            <!-- Sisi Belakang: Rumus, Penjelasan & Statistik -->
+            <div class="metric-face metric-face-back">
+              <div class="metric-top">
+                <span class="metric-title">${s.judul}</span>
+                <span class="metric-formula js-formula">${s.rumus}</span>
+              </div>
+              <p class="metric-desc">${s.penjelasan}</p>
+              <div class="metric-stats js-stats">
+                <span>Min: ${s.stat ? s.stat.min : '--'}</span>
+                <span>Avg: ${s.stat ? s.stat.avg : '--'}</span>
+                <span>Max: ${s.stat ? s.stat.max : '--'}</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+        })
+        .join('');
+      return;
+    }
+
+    // Update nilai & satuan secara langsung tanpa mereset animasi flip
+    const cards = grid.querySelectorAll('.metric-flip-card');
+    specs.forEach((s, idx) => {
+      const card = cards[idx];
+      if (!card) return;
+      card.querySelector('.js-val').textContent = s.nilai;
+      card.querySelector('.js-unit').textContent = s.satuan;
+      card.querySelector('.js-formula').textContent = s.rumus;
+      card.querySelector('.js-stats').innerHTML = `
+        <span>Min: ${s.stat ? s.stat.min : '--'}</span>
+        <span>Avg: ${s.stat ? s.stat.avg : '--'}</span>
+        <span>Max: ${s.stat ? s.stat.max : '--'}</span>`;
+    });
   }
 
   function initChart() {
@@ -913,6 +962,17 @@
       state.riwayat = [];
       renderMetrics();
       renderChart();
+    });
+
+    $('#metric-grid').addEventListener('click', (e) => {
+      const card = e.target.closest('.metric-flip-card');
+      if (!card) return;
+      const idx = card.dataset.cardIdx;
+      const key = `${state.mode}_${idx}`;
+      const willFlip = !card.classList.contains('flipped');
+      card.classList.toggle('flipped', willFlip);
+      if (willFlip) state.flippedCards.add(key);
+      else state.flippedCards.delete(key);
     });
 
     $('#btn-ambil-data').addEventListener('click', ambilNilaiSaatIni);

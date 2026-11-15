@@ -618,14 +618,38 @@ code {
   margin-top: 2px;
 }
 
-/* Metric Grid */
+/* Metric Grid (Flippable 3D Cards) */
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
   gap: 16px;
 }
 
-.metric-card {
+.metric-flip-card {
+  perspective: 1000px;
+  min-height: 158px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.metric-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 158px;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-style: preserve-3d;
+}
+
+.metric-flip-card.flipped .metric-flip-inner {
+  transform: rotateY(180deg);
+}
+
+.metric-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-top: 4px solid var(--primary);
@@ -634,7 +658,12 @@ code {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  justify-content: space-between;
+}
+
+.metric-face-back {
+  transform: rotateY(180deg);
+  background: var(--surface-2);
 }
 
 .metric-top {
@@ -645,42 +674,66 @@ code {
 }
 
 .metric-title {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 800;
+  color: var(--text);
+}
+
+.flip-hint {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-soft);
+  padding: 3px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.metric-value {
+  font-size: 2.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-family: 'JetBrains Mono', monospace;
+  margin: 6px 0;
+}
+
+.metric-unit {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-left: 6px;
+}
+
+.metric-front-sub {
+  font-size: 0.76rem;
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 .metric-formula {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.74rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--primary);
   background: var(--primary-soft);
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 6px;
 }
 
-.metric-value {
-  font-size: 1.9rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.metric-unit {
-  font-size: 0.95rem;
-  font-weight: 600;
+.metric-desc {
+  font-size: 0.8rem;
   color: var(--text-muted);
-  margin-left: 4px;
+  line-height: 1.4;
+  margin: 6px 0;
 }
 
 .metric-stats {
   display: flex;
   justify-content: space-between;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   border-top: 1px solid var(--border);
-  padding-top: 8px;
+  padding-top: 6px;
   font-family: 'JetBrains Mono', monospace;
 }
 
